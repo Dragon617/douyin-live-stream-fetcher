@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Cookie data (sensitive)
+cookies.json
+
+# Logs
+*.log
+*.log.*
+
+# Debug files
+debug.log
+server.log
+server_debug.log
+server_output.log
+server_new.log
+server_new.js
+server.js.bak
+
+# Test files
+test_*.js
+parse_standalone.js
+
+# Windows files
+*.bat
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+downloads/
+dist/
+build/

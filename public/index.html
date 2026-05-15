@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抖音直播流获取工具</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --primary: #fe2c55;
+      --primary-dark: #e02548;
+      --secondary: #25f4ee;
+      --bg-dark: #0a0a0f;
+      --bg-card: rgba(255,255,255,0.03);
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255,255,255,0.6);
+      --border: rgba(255,255,255,0.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height:100vh;
+      overflow-x:hidden;
+      padding-top:50px;
+    }
+
+    /* 登录栏 */
+    .login-bar {
+      position:fixed;
+      top:0; left:0;
+      width:100%;
+      background:rgba(0,0,0,0.95);
+      padding:10px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      z-index:9999;
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--border);
+    }
+    .login-status { color:var(--text-secondary); font-size:0.85rem; }
+    .login-status.logged-in { color:#22c55e; }
+    .login-actions { display:flex; gap:10px; }
+    .btn-login {
+      background:linear-gradient(135deg,var(--primary),#ff6b8a);
+      color:white;
+      border:none;
+      padding:8px 16px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:0.85rem;
+      transition:all 0.3s;
+    }
+    .btn-login:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(254,44,85,0.4); }
+    .btn-logout {
+      background:rgba(255,255,255,0.1);
+      color:white;
+      border:1px solid rgba(255,255,255,0.2);
+      padding:8px 16px;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:0.85rem;
+      transition:all 0.3s;
+    }
+    .btn-logout:hover { background:rgba(255,255,255,0.2); }
+
+    /* 背景效果 */
+    .bg-effects {
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      pointer-events:none;
+      z-index:0;
+      overflow:hidden;
+    }
+    .bg-gradient {
+      position:absolute;
+      width:600px; height:600px;
+      border-radius:50%;
+      filter:blur(120px);
+      opacity:0.15;
+    }
+    .bg-gradient-1 { background:var(--primary); top:-200px; right:-100px; }
+    .bg-gradient-2 { background:var(--secondary); bottom:-200px; left:-100px; }
+    .bg-grid {
+      position:absolute;
+      top:0; left:0;
+      width:100%; height:100%;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+      background-size:50px 50px;
+    }
+
+    .container {
+      position:relative;
+      z-index:1;
+      max-width:800px;
+      margin:0 auto;
+      padding:40px 20px;
+    }
+
+    /* 标题区 */
+    .header { text-align:center; margin-bottom:40px; }
+    .logo {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:80px; height:80px;
+      background:linear-gradient(135deg,var(--primary),#ff6b8a);
+      border-radius:24px;
+      margin-bottom:24px;
+      box-shadow:0 20px 60px rgba(254,44,85,0.3);
+      animation:float 3s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .logo svg { width:40px; height:40px; fill:white; }
+    h1 {
+      font-size:2.5rem;
+      font-weight:700;
+      margin-bottom:12px;
+      background:linear-gradient(135deg,var(--text-primary),var(--secondary));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .subtitle { color:var(--text-secondary); font-size:1.1rem; }
+
+    /* 输入卡片 */
+    .input-card {
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      padding:32px;
+      margin-bottom:30px;
+      backdrop-filter:blur(20px);
+    }
+    .input-group { display:flex; gap:12px; }
+    .input-wrapper { flex:1; position:relative; }
+    .input-icon {
+      position:absolute;
+      left:20px; top:50%;
+      transform:translateY(-50%);
+      color:var(--text-secondary);
+    }
+    .input-icon svg { width:20px; height:20px; }
+    input[type="text"] {
+      width:100%;
+      padding:18px 20px 18px 52px;
+      background:rgba(255,255,255,0.05);
+      border:2px solid transparent;
+      border-radius:16px;
+      color:var(--text-primary);
+      font-size:1rem;
+      outline:none;
+      transition:all 0.3s;
+    }
+    input[type="text"]::placeholder { color:var(--text-secondary); }
+    input[type="text"]:focus {
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(254,44,85,0.1);
+    }
+    .btn {
+      padding:18px 32px;
+      border:none;
+      border-radius:16px;
+      font-size:1rem;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.3s;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn-primary {
+      background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+      color:white;
+      box-shadow:0 8px 30px rgba(254,44,85,0.3);
+    }
+    .btn-primary:hover {
+      transform:translateY(-2px);
+      box-shadow:0 12px 40px rgba(254,44,85,0.4);
+    }
+    .btn-primary:disabled {
+      opacity:0.6;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .btn svg { width:20px; height:20px; }
+
+    /* Cookie 区 */
+    .cookie-toggle { margin-top:12px; text-align:right; }
+    .cookie-toggle button {
+      background:none;
+      border:none;
+      color:var(--text-secondary);
+      font-size:0.85rem;
+      cursor:pointer;
+      padding:4px 8px;
+      border-radius:6px;
+      transition:all 0.3s;
+    }
+    .cookie-toggle button:hover { color:var(--text-primary); background:rgba(255,255,255,0.05); }
+    .cookie-area { display:none; margin-top:12px; }
+    .cookie-area.show { display:block; }
+    .cookie-area textarea {
+      width:100%;
+      padding:12px 16px;
+      background:rgba(255,255,255,0.05);
+      border:2px solid transparent;
+      border-radius:12px;
+      color:var(--text-secondary);
+      font-size:0.8rem;
+      font-family:'Monaco','Consolas',monospace;
+      resize:vertical;
+      min-height:70px;
+      outline:none;
+      transition:all 0.3s;
+    }
+    .cookie-area textarea:focus { border-color:var(--primary); color:var(--text-primary); }
+    .cookie-hint {
+      font-size:0.78rem;
+      color:var(--text-secondary);
+      margin-top:6px;
+      line-height:1.5;
+    }
+
+    /* 结果卡片 */
+    .result-card {
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      overflow:hidden;
+      backdrop-filter:blur(20px);
+      animation:slideUp 0.4s ease;
+      display:none;
+    }
+    .result-card.show { display:block; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .live-header {
+      display:flex;
+      gap:20px;
+      padding:24px;
+      border-bottom:1px solid var(--border);
+    }
+    .cover-wrapper { position:relative; flex-shrink:0; }
+    .cover {
+      width:120px; height:120px;
+      border-radius:16px;
+      object-fit:cover;
+      background:rgba(255,255,255,0.05);
+    }
+    .live-badge {
+      position:absolute;
+      top:8px; left:8px;
+      background:var(--primary);
+      color:white;
+      padding:4px 12px;
+      border-radius:8px;
+      font-size:0.75rem;
+      font-weight:600;
+      display:none;
+    }
+    .live-badge.show { display:block; animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+    .live-info {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    .live-title {
+      font-size:1.25rem;
+      font-weight:600;
+      margin-bottom:8px;
+      line-height:1.4;
+    }
+    .live-anchor { color:var(--text-secondary); font-size:0.95rem; margin-bottom:12px; }
+    .live-status {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:0.85rem;
+      color:var(--text-secondary);
+    }
+    .status-dot {
+      width:8px; height:8px;
+      border-radius:50%;
+      background:#666;
+    }
+    .status-dot.live {
+      background:#22c55e;
+      box-shadow:0 0 10px rgba(34,197,94,0.5);
+    }
+
+    /* 直播流列表 */
+    .streams-section { padding:24px; }
+    .streams-title {
+      font-size:0.9rem;
+      color:var(--text-secondary);
+      margin-bottom:16px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+    .stream-item {
+      background:rgba(255,255,255,0.03);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:16px 20px;
+      margin-bottom:12px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      transition:all 0.3s;
+    }
+    .stream-item:hover { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.15); }
+    .stream-quality {
+      background:linear-gradient(135deg,var(--primary),#ff6b8a);
+      color:white;
+      padding:6px 14px;
+      border-radius:8px;
+      font-size:0.85rem;
+      font-weight:600;
+      flex-shrink:0;
+    }
+    .stream-url-wrapper { flex:1; min-width:0; }
+    .stream-url {
+      font-family:'Monaco','Consolas',monospace;
+      font-size:0.85rem;
+      color:var(--text-secondary);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      background:rgba(0,0,0,0.2);
+      padding:8px 12px;
+      border-radius:8px;
+    }
+    .stream-actions { display:flex; gap:8px; flex-shrink:0; }
+    .btn-icon {
+      width:40px; height:40px;
+      border-radius:10px;
+      border:none;
+      background:rgba(255,255,255,0.05);
+      color:var(--text-primary);
+      cursor:pointer;
+      transition:all 0.3s;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn-icon:hover { background:var(--primary); transform:scale(1.05); }
+    .btn-icon.copied { background:#22c55e; }
+
+    /* 加载/错误/提示 */
+    .loading {
+      display:none;
+      text-align:center;
+      padding:60px 20px;
+    }
+    .loading.show { display:block; }
+    .spinner {
+      width:50px; height:50px;
+      border:3px solid rgba(255,255,255,0.1);
+      border-top-color:var(--primary);
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin:0 auto 20px;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .loading-text { color:var(--text-secondary); font-size:1rem; }
+    .error-message {
+      display:none;
+      background:rgba(254,44,85,0.1);
+      border:1px solid rgba(254,44,85,0.3);
+      border-radius:16px;
+      padding:20px;
+      text-align:center;
+      color:var(--primary);
+      margin-top:20px;
+    }
+    .error-message.show { display:block; animation:shake 0.5s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    .tips {
+      text-align:center;
+      margin-top:40px;
+      padding:24px;
+      background:var(--bg-card);
+      border-radius:16px;
+      border:1px solid var(--border);
+    }
+    .tips h3 { font-size:1rem; margin-bottom:12px; color:var(--secondary); }
+    .tips p { color:var(--text-secondary); font-size:0.9rem; line-height:1.6; }
+
+    /* 播放器弹窗 */
+    .player-modal {
+      display:none;
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.9);
+      z-index:1000;
+      align-items:center;
+      justify-content:center;
+      backdrop-filter:blur(10px);
+    }
+    .player-modal.show { display:flex; }
+    .player-content {
+      width:90%;
+      max-width:900px;
+      background:var(--bg-dark);
+      border-radius:24px;
+      overflow:hidden;
+    }
+    .player-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 24px;
+      border-bottom:1px solid var(--border);
+    }
+    .player-title { font-weight:600; }
+    .close-btn {
+      width:36px; height:36px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,0.1);
+      color:white;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:all 0.3s;
+    }
+    .close-btn:hover { background:var(--primary); }
+    .player-body { padding:20px; }
+    .video-container {
+      position:relative;
+      width:100%;
+      padding-bottom:56.25%;
+      background:#000;
+      border-radius:16px;
+      overflow:hidden;
+    }
+    .video-container video, .video-container iframe {
+      position:absolute;
+      top:0; left:0;
+      width:100%; height:100%;
+    }
+
+    /* 视频下载区 */
+    .video-card {
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      padding:32px;
+      margin-bottom:30px;
+      backdrop-filter:blur(20px);
+    }
+    .video-card h2 {
+      font-size:1.3rem;
+      margin-bottom:20px;
+      background:linear-gradient(135deg,var(--text-primary),var(--secondary));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .video-section { margin-bottom:24px; }
+    .video-section h3 { font-size:0.95rem; color:var(--text-secondary); margin-bottom:12px; }
+    .video-input-group { display:flex; gap:12px; margin-bottom:16px; }
+    .video-list {
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+      gap:16px;
+      margin-top:16px;
+    }
+    .video-item {
+      background:rgba(255,255,255,0.03);
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:hidden;
+      transition:all 0.3s;
+      cursor:pointer;
+    }
+    .video-item:hover { border-color:rgba(255,255,255,0.2); transform:translateY(-2px); }
+    .video-thumb {
+      width:100%;
+      aspect-ratio:9/16;
+      object-fit:cover;
+      background:rgba(255,255,255,0.05);
+    }
+    .video-item-info { padding:12px; }
+    .video-item-title {
+      font-size:0.85rem;
+      line-height:1.4;
+      margin-bottom:8px;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .video-item-actions { display:flex; gap:8px; }
+    .btn-sm {
+      padding:6px 12px;
+      border:none;
+      border-radius:8px;
+      font-size:0.8rem;
+      cursor:pointer;
+      flex:1;
+      text-align:center;
+      transition:all 0.3s;
+    }
+    .btn-download {
+      background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+      color:white;
+    }
+    .btn-download:hover { transform:translateY(-1px); }
+    .btn-play-video {
+      background:rgba(255,255,255,0.05);
+      color:var(--text-primary);
+    }
+    .btn-play-video:hover { background:rgba(255,255,255,0.1); }
+
+    /* 访客统计悬浮窗 - 缩小版 */
+    .stats-float {
+      position:fixed;
+      bottom:20px;
+      right:20px;
+      z-index:9998;
+    }
+    .stats-toggle {
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      background:linear-gradient(135deg,var(--primary),#ff6b8a);
+      border:none;
+      color:white;
+      cursor:pointer;
+      font-size:1rem;
+      box-shadow:0 4px 16px rgba(254,44,85,0.4);
+      transition:all 0.3s;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .stats-toggle:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(254,44,85,0.5); }
+    .stats-window {
+      position:absolute;
+      bottom:55px;
+      right:0;
+      width:260px;
+      height:180px;
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      backdrop-filter:blur(20px);
+      box-shadow:0 10px 40px rgba(0,0,0,0.5);
+      display:none;
+      overflow:hidden;
+      animation:fadeIn 0.3s ease;
+    }
+    .stats-window.show { display:block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .stats-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:8px 12px;
+      border-bottom:1px solid var(--border);
+      font-size:0.8rem;
+      font-weight:600;
+    }
+    .stats-close {
+      background:none;
+      border:none;
+      color:var(--text-secondary);
+      cursor:pointer;
+      font-size:1rem;
+      padding:0;
+      width:20px;
+      height:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:4px;
+      transition:all 0.3s;
+    }
+    .stats-close:hover { color:white; background:rgba(255,255,255,0.1); }
+    .stats-frame {
+      width:100%;
+      height:140px;
+      border:none;
+      background:transparent;
+    }
+
+    /* 功能菜单卡片 */
+    .menu-card {
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:20px;
+      margin-bottom:16px;
+      overflow:hidden;
+      backdrop-filter:blur(20px);
+      transition:all 0.3s;
+    }
+    .menu-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 20px;
+      cursor:pointer;
+      transition:all 0.3s;
+      user-select:none;
+    }
+    .menu-header:hover { background:rgba(255,255,255,0.02); }
+    .menu-title {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-size:1.1rem;
+      font-weight:600;
+    }
+    .menu-icon {
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1.2rem;
+    }
+    .menu-icon.live { background:linear-gradient(135deg,var(--primary),#ff6b8a); }
+    .menu-icon.video { background:linear-gradient(135deg,#25f4ee,#1a9e9a); }
+    .menu-arrow {
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      background:rgba(255,255,255,0.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform 0.3s;
+      color:var(--text-secondary);
+    }
+    .menu-card.active .menu-arrow { transform:rotate(180deg); }
+    .menu-content {
+      max-height:0;
+      overflow:hidden;
+      transition:max-height 0.4s ease, padding 0.4s ease;
+    }
+    .menu-card.active .menu-content {
+      max-height:2000px;
+      padding:0 20px 20px;
+    }
+
+    /* Cookie弹窗 */
+    .cookie-modal {
+      display:none;
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.85);
+      z-index:1002;
+      align-items:center;
+      justify-content:center;
+      backdrop-filter:blur(10px);
+    }
+    .cookie-modal.show { display:flex; }
+    .cookie-modal-content {
+      width:90%;
+      max-width:600px;
+      background:var(--bg-dark);
+      border:1px solid var(--border);
+      border-radius:24px;
+      overflow:hidden;
+      animation:modalIn 0.3s ease;
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .cookie-modal-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 24px;
+      border-bottom:1px solid var(--border);
+      font-weight:600;
+      font-size:1.05rem;
+    }
+    .cookie-modal-header .close-btn { width:32px;height:32px; }
+    .cookie-modal-body { padding:24px; }
+    .cookie-steps { margin-bottom:20px; }
+    .cookie-steps p { color:var(--text-secondary); font-size:0.88rem; line-height:1.8; margin-bottom:4px; }}
+    .cookie-copy-tip {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(255,255,255,0.05);
+      border-radius:8px;
+      padding:8px 12px;
+      margin:8px 0;
+    }
+    .cookie-copy-tip code {
+      flex:1;
+      font-family:'Monaco','Consolas',monospace;
+      font-size:0.82rem;
+      color:var(--secondary);
+      word-break:break-all;
+    }
+    .cookie-copy-tip .btn-icon { width:32px;height:32px;flex-shrink:0; }
+    #manualCookieInput {
+      width:100%;
+      min-height:100px;
+      padding:12px 16px;
+      background:rgba(255,255,255,0.05);
+      border:2px solid transparent;
+      border-radius:12px;
+      color:var(--text-primary);
+      font-size:0.88rem;
+      font-family:'Monaco','Consolas',monospace;
+      resize:vertical;
+      outline:none;
+      transition:all 0.3s;
+      box-sizing:border-box;
+    }
+    #manualCookieInput:focus { border-color:var(--primary); }
+    #manualCookieInput::placeholder { color:var(--text-secondary); }
+    .cookie-modal-actions { display:flex; gap:12px; margin-top:16px; }
+    .cookie-modal-actions .btn { flex:1; justify-content:center; }
+
+    /* Toast */
+    .toast {
+      position:fixed;
+      bottom:30px; left:50%;
+      transform:translateX(-50%) translateY(100px);
+      background:rgba(0,0,0,0.9);
+      color:white;
+      padding:14px 28px;
+      border-radius:12px;
+      font-size:0.95rem;
+      opacity:0;
+      transition:all 0.3s;
+      z-index:1001;
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    /* 统计链接区 */
+    .stats-section {
+      margin-top:40px;
+      padding:20px;
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      backdrop-filter:blur(20px);
+    }
+    .stats-title {
+      font-size:1rem;
+      color:var(--secondary);
+      margin-bottom:16px;
+      text-align:center;
+    }
+    .stats-frame {
+      width:100%;
+      height:600px;
+      border:none;
+      border-radius:16px;
+      background:rgba(0,0,0,0.2);
+    }
+
+    /* 响应式 */
+    @media(max-width:768px) {
+      .container { padding:16px 12px; }
+      h1 { font-size:1.6rem; }
+      .logo { width:60px; height:60px; border-radius:18px; }
+      .logo svg { width:30px; height:30px; }
+      .input-group { flex-direction:column; }
+      .btn { width:100%; justify-content:center; }
+      .live-header { flex-direction:column; align-items:center; text-align:center; padding:16px; }
+      .cover { width:80px; height:80px; }
+      .stream-item { flex-wrap:wrap; }
+      .stream-url-wrapper { width:100%; order:3; }
+      .stream-actions { margin-left:auto; }
+      .video-input-group { flex-direction:column; }
+      .video-list { grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; }
+      .video-item-title { font-size:0.75rem; -webkit-line-clamp:1; }
+      
+      /* 统计悬浮窗移动端适配 */
+      .stats-float { bottom:12px; right:12px; }
+      .stats-toggle { width:40px; height:40px; font-size:0.9rem; }
+      .stats-window { 
+        position:fixed; 
+        bottom:60px; 
+        right:12px; 
+        left:12px; 
+        width:auto; 
+        height:200px; 
+      }
+      .stats-frame { height:160px; }
+      
+      /* 菜单移动端适配 */
+      .menu-header { padding:14px 16px; }
+      .menu-icon { width:36px; height:36px; font-size:1rem; }
+      .menu-title { font-size:1rem; }
+      .menu-content { padding:0 16px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+    <!-- 登录状态栏 -->
+  <div class="login-bar" id="loginBar">
+    <span class="login-status" id="loginStatusText">&#x1F512; 未登录</span>
+    <div class="login-actions">
+      <button class="btn-login" id="loginBtn" onclick="startLogin()">🎯 一键登录抖音</button>
+      <button class="btn-logout" id="logoutBtn" onclick="logout()" style="display:none;">退出登录</button>
+    </div>
+  </div>
+
+  <!-- Cookie 手动输入弹窗 -->
+  <div class="cookie-modal" id="cookieModal">
+    <div class="cookie-modal-content">
+      <div class="cookie-modal-header">
+        <span>&#x1F511; 保存抖音 Cookie</span>
+        <button class="close-btn" onclick="closeCookieModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="cookie-modal-body">
+        <div class="cookie-steps">
+          <p>&#x1F536; 步骤1：已为你打开抖音官网，请在新窗口中完成扫码/账号登录</p>
+          <p>&#x1F536; 步骤2：登录成功后，按 <b>F12</b> 打开开发者工具 → 点击 <b>Application</b> 标签 → 左侧选择 <b>Cookies → https://www.douyin.com</b></p>
+          <p>&#x1F536; 步骤3：在Cookie列表中，双击Cookie值复制，或直接在控制台输入以下代码一键复制：</p>
+          <div class="cookie-copy-tip">
+            <code id="cookieCopyCode">document.cookie</code>
+            <button class="btn-icon" onclick="copyCookieCode()" title="复制代码">&#x1F4CB;</button>
+          </div>
+          <p>&#x1F536; 步骤4：将复制的内容粘贴到下方文本框，点击保存</p>
+        </div>
+        <textarea id="manualCookieInput" placeholder="粘贴Cookie字符串，格式如：&#10;sessionid=abc123; csrf_token=xyz789; ..."></textarea>
+        <div class="cookie-modal-actions">
+          <button class="btn btn-primary" onclick="saveManualCookies()">&#x1F4BE; 保存Cookie</button>
+          <button class="btn btn-logout" onclick="closeCookieModal()" style="color:var(--text-secondary);">取消</button>
+        </div>
+        <p class="cookie-hint" style="margin-top:10px;">&#x1F6E1;&#xFE0F; Cookie仅保存在本地，不会上传到任何服务器</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-effects">
+    <div class="bg-gradient bg-gradient-1"></div>
+    <div class="bg-gradient bg-gradient-2"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <div class="container">
+    <!-- 直播流获取 -->
+    <header class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+        </svg>
+      </div>
+      <h1>抖音直播流获取</h1>
+      <p class="subtitle">快速获取抖音直播间真实直播流地址</p>
+    </header>
+
+    <!-- 直播流获取菜单 -->
+    <div class="menu-card active" id="liveMenu">
+      <div class="menu-header" onclick="toggleMenu('liveMenu')">
+        <div class="menu-title">
+          <div class="menu-icon live">&#x1F4F9;</div>
+          <span>抖音直播流获取</span>
+        </div>
+        <div class="menu-arrow">&#x25BC;</div>
+      </div>
+      <div class="menu-content" id="liveMenuContent">
+        <div class="input-card">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </span>
+              <input type="text" id="roomUrl" placeholder="请粘贴抖音直播间链接..." autocomplete="off">
+            </div>
+            <button class="btn btn-primary" id="parseBtn" onclick="parseRoom()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              获取直播流
+            </button>
+          </div>
+          <div class="cookie-toggle">
+            <button onclick="toggleCookie()">&#x1F511; 填写 Cookie（获取更多码率）</button>
+          </div>
+          <div class="cookie-area" id="cookieArea">
+            <textarea id="cookieInput" placeholder="粘贴抖音 Cookie（可选）&#10;登录后可自动使用保存的Cookie"></textarea>
+            <p class="cookie-hint">&#128161; 登录后无需手动填写Cookie，系统自动使用保存的登录态。</p>
+          </div>
+        </div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p class="loading-text">正在解析直播流...</p>
+        </div>
+
+        <div class="result-card" id="resultCard">
+          <div class="live-header">
+            <div class="cover-wrapper">
+              <img class="cover" id="roomCover" src="" alt="直播间封面">
+              <span class="live-badge" id="liveBadge">直播中</span>
+            </div>
+            <div class="live-info">
+              <h2 class="live-title" id="roomTitle">直播间标题</h2>
+              <p class="live-anchor" id="roomAnchor">主播名称</p>
+              <div class="live-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">检测中...</span>
+              </div>
+            </div>
+          </div>
+          <div class="streams-section">
+            <h3 class="streams-title">&#x1F4FA; 直播流地址</h3>
+            <div id="streamsList"></div>
+          </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+      </div>
+    </div>
+
+    <!-- 视频下载菜单 -->
+    <div class="menu-card" id="videoMenu">
+      <div class="menu-header" onclick="toggleMenu('videoMenu')">
+        <div class="menu-title">
+          <div class="menu-icon video">&#x1F4F9;</div>
+          <span>抖音视频下载</span>
+        </div>
+        <div class="menu-arrow">&#x25BC;</div>
+      </div>
+      <div class="menu-content" id="videoMenuContent">
+        <!-- 单个视频下载 -->
+        <div class="video-section">
+          <h3>单个视频下载</h3>
+          <div class="video-input-group">
+            <input type="text" id="videoUrl" placeholder="粘贴抖音视频链接..." style="flex:1;">
+            <button class="btn btn-primary" onclick="parseVideo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              解析视频
+            </button>
+          </div>
+          <div id="videoResult"></div>
+        </div>
+
+        <!-- 用户作品批量下载 -->
+        <div class="video-section">
+          <h3>用户作品批量下载</h3>
+          <div class="video-input-group">
+            <input type="text" id="userUrl" placeholder="粘贴用户主页链接..." style="flex:1;">
+            <button class="btn btn-primary" onclick="getUserVideos()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              获取作品列表
+            </button>
+          </div>
+          <div id="videoListResult"></div>
+          <div class="video-list" id="videoList"></div>
+          <div id="batchActions" style="display:none; margin-top:16px; text-align:center;">
+            <button class="btn btn-primary" onclick="downloadSelected()">
+              &#x2B07;&#xFE0F; 下载选中视频
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tips">
+      <h3>&#128161; 使用说明</h3>
+      <p>
+        1. 复制抖音直播间/视频链接，粘贴到输入框<br>
+        2. 点击「获取直播流」或「解析视频」按钮<br>
+        3. 复制直播流地址或直接下载视频<br>
+        4. 可选：登录抖音获取更多码率和功能
+      </p>
+    </div>
+  </div>
+
+  <!-- 播放器弹窗 -->
+  <div class="player-modal" id="playerModal">
+    <div class="player-content">
+      <div class="player-header">
+        <span class="player-title">直播预览</span>
+        <button class="close-btn" onclick="closePlayer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="player-body">
+        <div class="video-container">
+          <video id="videoPlayer" controls autoplay></video>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- 访客统计悬浮窗 -->
+  <div class="stats-float" id="statsFloat">
+    <button class="stats-toggle" id="statsToggle" title="访客统计">📊</button>
+    <div class="stats-window" id="statsWindow">
+      <div class="stats-header">
+        <span>访客统计</span>
+        <button class="stats-close" id="statsClose">×</button>
+      </div>
+      <iframe class="stats-frame" src="https://cn.widgetstore.net/view/index.html?q=5b049cc8622189440f31d6307d40e568.9756e7616a0031cb01b882bb66c7c2f4" title="访问统计"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // ========== 全局状态 ==========
+    let selectedVideos = new Set();
+
+    // ========== 登录功能（自动获取Cookie）==========
+
+    // 开始登录流程
+    async function startLogin() {
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = true;
+      loginBtn.textContent = '⏳ 正在打开浏览器...';
+      
+      try {
+        const res = await fetch('/api/login/start');
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('✅ 浏览器已打开，请完成登录（最多等待10分钟）');
+          loginBtn.textContent = '⏳ 等待登录中...';
+          
+          // 开始轮询登录状态
+          checkLoginProgress();
+        } else {
+          showToast('❌ 启动失败：' + (data.error || '未知错误'));
+          resetLoginButton();
+        }
+      } catch (e) {
+        showToast('❌ 网络错误，请重试');
+        resetLoginButton();
+      }
+    }
+
+    // 轮询登录状态
+    let loginCheckTimer = null;
+    function checkLoginProgress() {
+      if (loginCheckTimer) clearTimeout(loginCheckTimer);
+      
+      loginCheckTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/login/status');
+          const data = await res.json();
+          
+          if (data.loggedIn) {
+            // 登录成功
+            showToast('✅ 登录成功！Cookie已自动保存');
+            checkLoginStatus();  // 更新UI
+            resetLoginButton();
+            loginCheckTimer = null;
+          } else if (data.inProgress) {
+            // 继续等待
+            checkLoginProgress();
+          } else {
+            // 登录失败或超时
+            showToast('⏰ 登录超时，请重试');
+            resetLoginButton();
+            loginCheckTimer = null;
+          }
+        } catch (e) {
+          console.log('检查登录状态失败', e);
+          resetLoginButton();
+          loginCheckTimer = null;
+        }
+      }, 5000);  // 每5秒检查一次
+    }
+
+    // 重置登录按钮
+    function resetLoginButton() {
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = false;
+      loginBtn.textContent = '🎯 一键登录抖音';
+    }
+
+    // 打开Cookie弹窗（备用方案）
+    function openCookieModal() {
+      document.getElementById('cookieModal').classList.add('show');
+      document.getElementById('manualCookieInput').value = '';
+      document.getElementById('manualCookieInput').focus();
+    }
+
+    // 关闭Cookie弹窗
+    function closeCookieModal() {
+      document.getElementById('cookieModal').classList.remove('show');
+    }
+
+    // 复制 document.cookie 代码到剪贴板
+    function copyCookieCode() {
+      const code = 'document.cookie';
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('已复制代码，请在抖音页面控制台粘贴回车');
+      }).catch(() => {
+        showToast('请手动复制：document.cookie');
+      });
+    }
+
+    // 保存手动输入的Cookie
+    async function saveManualCookies() {
+      const cookieStr = document.getElementById('manualCookieInput').value.trim();
+      if (!cookieStr) { showToast('请先粘贴Cookie内容'); return; }
+      try {
+        const res = await fetch('/api/login/save-cookies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookieString: cookieStr })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Cookie保存成功！');
+          closeCookieModal();
+          checkLoginStatus();
+        } else {
+          showToast('保存失败：' + (data.error || 'Cookie格式不正确'));
+        }
+      } catch (e) {
+        showToast('网络错误，请重试');
+      }
+    }
+
+    // 检查登录状态（页面加载时调用）
+    async function checkLoginStatus() {
+      try {
+        const res = await fetch('/api/login/status');
+        const data = await res.json();
+        const statusText = document.getElementById('loginStatusText');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (data.loggedIn) {
+          statusText.textContent = '\u2705 已登录';
+          statusText.className = 'login-status logged-in';
+          loginBtn.style.display = 'none';
+          logoutBtn.style.display = 'inline-block';
+        } else {
+          statusText.textContent = '\uD83D\uDD12 未登录';
+          statusText.className = 'login-status';
+          loginBtn.style.display = 'inline-block';
+          logoutBtn.style.display = 'none';
+        }
+      } catch (e) { console.log('检查登录状态失败', e); }
+    }
+
+    
+    async function logout() {
+      try {
+        const res = await fetch('/api/login/logout', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('已退出登录');
+          checkLoginStatus();
+        }
+      } catch (e) { showToast('退出登录失败'); }
+    }
+
+    // ========== 直播流解析 ==========
+    function toggleCookie() {
+      const area = document.getElementById('cookieArea');
+      area.classList.toggle('show');
+    }
+
+    async function parseRoom() {
+      const urlInput = document.getElementById('roomUrl');
+      const url = urlInput.value.trim();
+      const parseBtn = document.getElementById('parseBtn');
+      const loading = document.getElementById('loading');
+      const resultCard = document.getElementById('resultCard');
+      const errorMessage = document.getElementById('errorMessage');
+      resultCard.classList.remove('show');
+      errorMessage.classList.remove('show');
+      if (!url) { showError('请输入直播间链接'); return; }
+      if (!isValidDouyinUrl(url)) { showError('链接格式不正确'); return; }
+      loading.classList.add('show');
+      parseBtn.disabled = true;
+      try {
+        const response = await fetch('/api/parse', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await response.json();
+        loading.classList.remove('show');
+        parseBtn.disabled = false;
+        if (data.success || data.streams?.length > 0) { showResult(data); }
+        else { showError(data.error || data.message || '获取直播流失败'); }
+      } catch (error) {
+        loading.classList.remove('show'); parseBtn.disabled = false;
+        showError('网络错误，请稍后重试');
+      }
+    }
+
+    function isValidDouyinUrl(url) {
+      return url.includes('douyin.com') || url.includes('v.douyin.com');
+    }
+
+    function showResult(data) {
+      const resultCard = document.getElementById('resultCard');
+      document.getElementById('roomCover').src = data.cover || '';
+      document.getElementById('roomTitle').textContent = data.title || '未知直播间';
+      document.getElementById('roomAnchor').textContent = data.anchor ? `主播: ${data.anchor}` : '未知主播';
+      const isLive = data.status === 1;
+      document.getElementById('liveBadge').classList.toggle('show', isLive);
+      document.getElementById('statusDot').classList.toggle('live', isLive);
+      document.getElementById('statusText').textContent = isLive ? '正在直播' : '未在直播';
+      const streamsList = document.getElementById('streamsList');
+      streamsList.innerHTML = '';
+      if (data.streams && data.streams.length > 0) {
+        data.streams.forEach(stream => {
+          const streamItem = document.createElement('div');
+          streamItem.className = 'stream-item';
+          const qualitySpan = document.createElement('span');
+          qualitySpan.className = 'stream-quality';
+          qualitySpan.textContent = stream.quality || '流畅';
+          const urlWrapper = document.createElement('div');
+          urlWrapper.className = 'stream-url-wrapper';
+          const urlDiv = document.createElement('div');
+          urlDiv.className = 'stream-url';
+          urlDiv.title = stream.url;
+          urlDiv.textContent = stream.url;
+          urlWrapper.appendChild(urlDiv);
+          const actions = document.createElement('div');
+          actions.className = 'stream-actions';
+          const playBtn = document.createElement('button');
+          playBtn.className = 'btn-icon'; playBtn.title = '播放';
+          playBtn.dataset.url = stream.url; playBtn.dataset.action = 'play';
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn-icon'; copyBtn.title = '复制';
+          copyBtn.dataset.url = stream.url; copyBtn.dataset.action = 'copy';
+          copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          actions.appendChild(playBtn); actions.appendChild(copyBtn);
+          streamItem.appendChild(qualitySpan); streamItem.appendChild(urlWrapper); streamItem.appendChild(actions);
+          streamsList.appendChild(streamItem);
+        });
+      } else if (data.message && isLive) {
+        streamsList.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-secondary);"><p style="color:#f59e0b;margin-bottom:12px;">\u26A0\uFE0F 直播间正在直播</p><p>${data.message}</p></div>`;
+      }
+      resultCard.classList.add('show');
+    }
+
+    function showError(message) {
+      const errorMessage = document.getElementById('errorMessage');
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+    }
+
+    // ========== 视频下载功能 ==========
+    async function parseVideo() {
+      const urlInput = document.getElementById('videoUrl');
+      const url = urlInput.value.trim();
+      const resultDiv = document.getElementById('videoResult');
+      if (!url) { showToast('请输入视频链接'); return; }
+      resultDiv.innerHTML = '<p style="color:var(--text-secondary);">正在解析...</p>';
+      try {
+        const res = await fetch('/api/video/info', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <div style="display:flex;gap:16px;align-items:center;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;padding:16px;">
+              <img src="${data.cover}" style="width:100px;border-radius:12px;object-fit:cover;" onerror="this.style.display='none'">
+              <div style="flex:1;">
+                <p style="font-weight:600;margin-bottom:8px;">${data.title}</p>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:12px;">作者: ${data.author}</p>
+                <button class="btn btn-primary" style="padding:10px 20px;font-size:0.9rem;" onclick="downloadVideo('${data.videoId}','${data.playUrl}')">\u2B07\uFE0F 下载视频</button>
+              </div>
+            </div>`;
+        } else { resultDiv.innerHTML = `<p style="color:var(--primary);">解析失败: ${data.error}</p>`; }
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:var(--primary);">网络错误</p>`;
+      }
+    }
+
+    async function getUserVideos() {
+      const urlInput = document.getElementById('userUrl');
+      const url = urlInput.value.trim();
+      const listDiv = document.getElementById('videoList');
+      const batchActions = document.getElementById('batchActions');
+      if (!url) { showToast('请输入用户主页链接'); return; }
+      listDiv.innerHTML = '<p style="color:var(--text-secondary);">正在获取作品列表...</p>';
+      batchActions.style.display = 'none';
+      selectedVideos.clear();
+      try {
+        const res = await fetch('/api/video/list', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.success && data.videos) {
+          listDiv.innerHTML = '';
+          batchActions.style.display = 'block';
+          data.videos.forEach(video => {
+            const item = document.createElement('div');
+            item.className = 'video-item';
+            item.innerHTML = `
+              <img class="video-thumb" src="${video.cover}" alt="封面" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22></svg>'">
+              <div class="video-item-info">
+                <div class="video-item-title">${video.title}</div>
+                <div class="video-item-actions">
+                  <button class="btn-sm btn-download" onclick="downloadVideo('${video.videoId}','${video.playUrl}')">下载</button>
+                </div>
+              </div>`;
+            listDiv.appendChild(item);
+          });
+        } else { listDiv.innerHTML = `<p style="color:var(--primary);">获取失败: ${data.error || '未知错误'}</p>`; }
+      } catch (e) {
+        listDiv.innerHTML = `<p style="color:var(--primary);">网络错误</p>`;
+      }
+    }
+
+    async function downloadVideo(videoId, playUrl) {
+      showToast('开始下载视频...');
+      try {
+        const res = await fetch('/api/video/download', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ videoId, playUrl })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('\u2705 下载完成！');
+          const a = document.createElement('a');
+          a.href = data.downloadUrl;
+          a.download = data.fileName || 'video.mp4';
+          a.click();
+        } else { showToast('下载失败: ' + (data.error || '未知错误')); }
+      } catch (e) { showToast('下载失败，请重试'); }
+    }
+
+    // ========== 播放/复制 ==========
+    function copyUrl(btn, url) {
+      navigator.clipboard.writeText(url).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        showToast('已复制到剪贴板');
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        }, 2000);
+      }).catch(() => { showToast('复制失败'); });
+    }
+
+    function playStream(url) {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('videoPlayer');
+      video.src = url;
+      modal.classList.add('show');
+      video.play().catch(e => { showToast('播放失败'); closePlayer(); });
+    }
+
+    function closePlayer() {
+      const modal = document.getElementById('playerModal');
+      const video = document.getElementById('videoPlayer');
+      video.pause(); video.src = '';
+      modal.classList.remove('show');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // 事件委托
+    document.getElementById('streamsList').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const url = btn.dataset.url;
+      if (btn.dataset.action === 'play') playStream(url);
+      else if (btn.dataset.action === 'copy') copyUrl(btn, url);
+    });
+
+    document.getElementById('roomUrl').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') parseRoom();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePlayer();
+    });
+
+    // 页面加载时检查登录状态
+    checkLoginStatus();
+
+    // 访客统计悬浮窗
+    const statsToggle = document.getElementById('statsToggle');
+    const statsWindow = document.getElementById('statsWindow');
+    const statsClose = document.getElementById('statsClose');
+
+    statsToggle.addEventListener('click', () => {
+      statsWindow.classList.toggle('show');
+    });
+
+    statsClose.addEventListener('click', () => {
+      statsWindow.classList.remove('show');
+    });
+
+    // 点击页面其他地方关闭统计窗
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#statsFloat')) {
+        statsWindow.classList.remove('show');
+      }
+    });
+
+    // 菜单切换功能
+    window.toggleMenu = function(menuId) {
+      const menu = document.getElementById(menuId);
+      menu.classList.toggle('active');
+    };
+  </script>
+</body>
+</html>
