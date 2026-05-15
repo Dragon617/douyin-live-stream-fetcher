@@ -13,7 +13,7 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // ========== Cookie 管理 ==========
 const COOKIE_FILE = path.join(__dirname, 'cookies.json');
