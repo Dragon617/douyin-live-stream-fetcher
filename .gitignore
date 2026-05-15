@@ -21,8 +21,8 @@ server.js.bak
 test_*.js
 parse_standalone.js
 
-# Windows files
-*.bat
+# Windows files (BAT files kept in repo)
+# *.bat  # 已移除，允许推送BAT文件
 
 # IDE
 .vscode/
