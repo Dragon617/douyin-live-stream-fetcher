@@ -36,11 +36,11 @@ start "DouyinTool" cmd /c "npm start"
 
 echo [3/3] Opening browser...
 timeout /t 3 /nobreak >nul
-start http://localhost:3000
+start http://localhost:1144
 
 echo.
 echo ========================================
-echo  Service started: http://localhost:3000
+echo  Service started: http://localhost:1144
 echo  Press any key to close this window
 echo ========================================
 echo.

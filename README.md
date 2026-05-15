@@ -50,14 +50,14 @@ npm install
 ### 启动
 
 ```bash
-# 启动服务（默认端口 3000）
+# 启动服务（默认端口 1144）
 npm start
 
 # 自定义端口
 PORT=8080 npm start
 ```
 
-启动后访问 `http://localhost:3000` 即可使用。
+启动后访问 `http://localhost:1144` 即可使用。
 
 ---
 
@@ -99,7 +99,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
 COPY . .
-EXPOSE 3000
+EXPOSE 1144
 CMD ["node", "server.js"]
 ```
 
@@ -107,7 +107,7 @@ CMD ["node", "server.js"]
 docker build -t douyin-live .
 docker run -d \
   --name douyin-live \
-  -p 3000:3000 \
+  -p 1144:1144 \
   --restart unless-stopped \
   douyin-live
 ```
@@ -120,7 +120,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:1144;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
