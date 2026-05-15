@@ -1,6 +1,6 @@
 {
   "name": "douyin-live-stream-fetcher",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "抖音直播间直播流获取工具 - 纯API方案，无需本地浏览器",
   "main": "server.js",
   "scripts": {
@@ -13,10 +13,10 @@
     "express": "^5.2.0",
     "helmet": "^7.1.0"
   },
-  "devDependencies": {
+  "optionalDependencies": {
     "puppeteer": "^24.43.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

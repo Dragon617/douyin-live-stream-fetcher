@@ -4,7 +4,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
-const puppeteer = require('puppeteer'); // 用于登录功能
+// Puppeteer 可选（用于登录功能，未安装时不启用）
+let puppeteer = null;
+try {
+  puppeteer = require('puppeteer');
+} catch (e) {
+  console.log('[Puppeteer] 未安装，登录功能需要手动粘贴 Cookie');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -298,6 +304,14 @@ function httpPost(requestUrl, postData, headers = {}) {
 
 // 启动登录浏览器
 app.get('/api/login/start', async (req, res) => {
+  if (!puppeteer) {
+    return res.json({ 
+      success: false, 
+      error: 'Puppeteer 未安装，请在本地运行 npm run login 后复制 cookies.json 到服务器',
+      hint: '或使用手动粘贴 Cookie 方式'
+    });
+  }
+  
   if (isLoggingIn) {
     return res.json({ success: false, error: '已有登录流程在进行中' });
   }
