@@ -13,7 +13,7 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 1144;
+const PORT = process.env.PORT || 3000;
 
 // ========== Cookie 管理 ==========
 const COOKIE_FILE = path.join(__dirname, 'cookies.json');
@@ -664,7 +664,7 @@ app.listen(PORT, () => {
 ║                                                               ║
 ║   🎬 抖音直播间直播流获取工具 V3.0                          ║
 ║                                                               ║
-║   服务已启动: http://localhost:${PORT}                          ║
+║   服务已启动: http://localhost:${PORT}                             ║
 ║   模式: 纯API（无需安装浏览器）                                ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
